@@ -108,8 +108,15 @@
         }
         
         .diy-grid-lines { 
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.6; pointer-events: none; 
-            background-image: linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px); 
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 1;
+            /* faded internal module lines - drawn at each subW/subH interval */
+            background-image: 
+                linear-gradient(to right,  rgba(255,255,255,0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.22) 1px, transparent 1px);
+        }
+        .zone-label {
+            position: relative; z-index: 2;
         }
         
         #wiringOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
@@ -287,8 +294,8 @@
     <div id="pdf-table-section"></div>
     
     <div style="margin-top: 40px; text-align: center; border-top: 1px solid #ccc; padding-top: 15px; color: #666; font-size: 0.8rem; font-weight:bold;">
-        Copyright @Alfazal Tech Mansoor Mukadam | ali2m1@gmail.com | +9710567547667
-    </div>
+        Copyright @Alfazal Tech Abil fazal Mukadam | email :- Abilfazal@gmail.com | +971585812753
+	</div>
 </div>
 <div class="container">
     <div class="calculator-card" id="captureArea">
@@ -307,7 +314,8 @@
                     <button class="btn btn-outline-primary px-3 active" id="btnNavTech" onclick="showTechnical()"><i class="fas fa-desktop me-1"></i> Technical</button>
                     <button class="btn btn-outline-success px-3" id="btnNavCost" onclick="showCost()"><i class="fas fa-file-invoice-dollar me-1"></i> Cost Estimation</button>
                  </div>
-                <button class="btn btn-dark btn-sm ms-2" onclick="clearData()">Reset</button>
+                <button class="btn btn-dark btn-sm ms-2" onclick="clearData()"><i class="fas fa-redo-alt me-1"></i>Reset</button>
+                <button class="btn btn-outline-secondary btn-sm ms-1" id="undoBtn" onclick="undoLast()" disabled title="Undo last change"><i class="fas fa-undo"></i> Undo</button>
             </div>
         </div>
 
@@ -328,9 +336,9 @@
                     <div class="p-3 bg-light rounded-3 mb-3 border">
                         <div class="section-header">1. Configuration</div>
                         <div class="btn-group w-100 mb-3" role="group">
-                            <input type="radio" class="btn-check" name="installType" id="modeCabinet" value="cabinet" checked onchange="calculate()">
+                            <input type="radio" class="btn-check" name="installType" id="modeCabinet" value="cabinet" checked onchange="confirmModeSwitch(this)">
                             <label class="btn btn-outline-dark" for="modeCabinet">Cabinet</label>
-                            <input type="radio" class="btn-check" name="installType" id="modeModule" value="module" onchange="calculate()">
+                            <input type="radio" class="btn-check" name="installType" id="modeModule" value="module" onchange="confirmModeSwitch(this)">
                             <label class="btn btn-outline-dark" for="modeModule">DIY Module</label>
                         </div>
                         
@@ -344,9 +352,9 @@
                         <div id="dimInputs">
                             <div class="input-group mb-2">
                                 <span class="input-group-text bg-white">W (cm)</span>
-                                <input type="number" class="form-control input-trigger" id="widthInput" value="300" oninput="debouncedCalculate()">
+                                <input type="number" class="form-control input-trigger" id="widthInput" value="300" oninput="resetOverflowMode(); debouncedCalculate()">
                                 <span class="input-group-text bg-white">H (cm)</span>
-                                <input type="number" class="form-control input-trigger" id="heightInput" value="200" oninput="debouncedCalculate()">
+                                <input type="number" class="form-control input-trigger" id="heightInput" value="200" oninput="resetOverflowMode(); debouncedCalculate()">
                             </div>
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" id="lockRatio" onchange="calculate()">
@@ -356,9 +364,9 @@
                         <div id="qtyInputs" style="display:none;">
                             <div class="input-group mb-3">
                                 <span class="input-group-text bg-white">Columns</span>
-                                <input type="number" class="form-control input-trigger" id="colsInput" value="6" oninput="debouncedCalculate()">
+                                <input type="number" class="form-control input-trigger" id="colsInput" value="6" oninput="resetOverflowMode(); debouncedCalculate()">
                                 <span class="input-group-text bg-white">Rows</span>
-                                <input type="number" class="form-control input-trigger" id="rowsInput" value="4" oninput="debouncedCalculate()">
+                                <input type="number" class="form-control input-trigger" id="rowsInput" value="4" oninput="resetOverflowMode(); debouncedCalculate()">
                             </div>
                         </div>
 
@@ -376,7 +384,7 @@
 
                         <div id="moduleOptions" style="display:none;">
                             <label class="form-label small fw-bold">Module Size</label>
-                            <select class="form-select input-trigger mb-2" id="moduleSize" onchange="calculate()">
+                            <select class="form-select input-trigger mb-2" id="moduleSize" onchange="resetOverflowMode(); calculate()">
                                 <option value="25,25">Square Module (25cm x 25cm)</option>
                                 <option value="32,16">Horizontal Module (32cm x 16cm)</option>
                                 <option value="16,32">Vertical Module (16cm x 32cm)</option>
@@ -385,7 +393,7 @@
                             <div class="p-2 bg-white border rounded mb-3">
                                 <label class="form-label small fw-bold text-primary">Zone Layout (DIY)</label>
                                 <div class="input-group input-group-sm">
-                                    <select class="form-select input-trigger" id="zoneConfig" onchange="calculate()">
+                                    <select class="form-select input-trigger" id="zoneConfig" onchange="resetOverflowMode(); calculate()">
                                         <option value="1,1">1 Module (1x1)</option>
                                         <option value="2,2">4 Modules (2x2)</option>
                                         <option value="2,3">6 Modules (2x3)</option>
@@ -489,6 +497,20 @@
                                 <div class="result-detail-small text-danger">Max <span id="unitsPerCircuit">0</span> / Line (<span id="totalAmpsResult">0</span> A)</div>
                             </div>
                         </div>
+                        <div class="col-md-6 col-xl-4" id="psuRcBox" style="display:none;">
+                            <div class="result-box" style="background:linear-gradient(135deg,#1a1a2e,#16213e); border:1px solid #0f3460;">
+                                <div class="result-title" style="color:#64dfdf;">POWER SUPPLIES</div>
+                                <div class="result-main" style="color:#64dfdf;"><span id="psuResult">0</span> PSU</div>
+                                <div class="result-detail-small" style="color:#a0c4ff;">1 per zone · <span id="psuDetailResult">—</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-xl-4" id="rcBox" style="display:none;">
+                            <div class="result-box" style="background:linear-gradient(135deg,#1a1a2e,#16213e); border:1px solid #0f3460;">
+                                <div class="result-title" style="color:#ffd166;">RECEIVING CARDS</div>
+                                <div class="result-main" style="color:#ffd166;"><span id="rcResult">0</span> RC</div>
+                                <div class="result-detail-small" style="color:#a0c4ff;">1 per zone · <span id="rcDetailResult">—</span></div>
+                            </div>
+                        </div>
                         <div class="col-md-6 col-xl-4">
                              <div class="result-box box-cost">
                                 <div class="result-title">ESTIMATED COST</div>
@@ -507,6 +529,7 @@
                     <div class="d-flex justify-content-center align-items-center mb-2 flex-wrap gap-2 view-btn-group">
                         <button class="btn btn-outline-primary btn-sm active" id="viewDataBtn" onclick="toggleViewMode('data')"><i class="fas fa-network-wired"></i> Data</button>
                         <button class="btn btn-outline-warning btn-sm btn-power" id="viewPowerBtn" onclick="toggleViewMode('power')"><i class="fas fa-bolt"></i> Power</button>
+                        <button class="btn btn-outline-success btn-sm ms-2" onclick="exportGridPNG()" title="Download grid as PNG image"><i class="fas fa-image"></i> Save PNG</button>
                         
                         <div class="form-check form-switch ms-3">
                             <input class="form-check-input" type="checkbox" id="showLines" checked onchange="calculate()">
@@ -526,6 +549,22 @@
                     </div>
 
 
+                    <!-- Overflow Banner -->
+                    <div id="overflowBanner" style="display:none; align-items:center; gap:10px; background:#fff3cd; border:2px solid #ffc107; border-radius:10px; padding:10px 16px; margin-bottom:10px; flex-wrap:wrap;">
+                        <i class="fas fa-exclamation-triangle" style="color:#e67e00; font-size:1.1em;"></i>
+                        <div style="flex:1;">
+                            <strong style="color:#7a4f00;">⚠ Leftover modules don't fill a complete zone.</strong><br>
+                            <span id="overflowDetail" style="font-size:0.85em; color:#6c4700;"></span>
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="btn btn-sm btn-warning" onclick="resolveOverflow('partial')" title="Create a smaller partial zone from leftover modules — adds 1 PSU &amp; 1 RC">
+                                <i class="fas fa-th-large"></i> Create Partial Zone
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="resolveOverflow('fit')" title="Discard leftover modules, keep only full zones">
+                                <i class="fas fa-compress-arrows-alt"></i> Discard Leftovers
+                            </button>
+                        </div>
+                    </div>
                     <div id="gridContainer">
                         <div id="ledGrid"></div>
                         <svg id="wiringOverlay"></svg>
@@ -596,15 +635,18 @@
         </div>
         
         <div class="page-footer">
-             Copyright @Alfazal Tech Mansoor Mukadam | ali2m1@gmail.com | +9710567547667
+             Copyright @Alfazal Tech Abil fazal Mukadam | email :- Abilfazal@gmail.com | +971585812753
         </div>
     </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 let currentViewMode = 'data';
 let previewImageUrl = null;
 let showImage = true;
+// Overflow handling: 'keep' = show extra modules outside layout, 'fit' = snap to layout, 'ask' = pending decision
+let overflowMode = 'ask';
+let lastOverflowState = null; // stores {extraCols, extraRows} for display
 
 
 // Debounce Utility
@@ -619,7 +661,139 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
-const debouncedCalculate = debounce(calculate, 250);
+// Lazy wrapper — calculate() is defined further down the script
+const debouncedCalculate = debounce((...args) => calculate(...args), 250);
+
+function showOverflowBanner(state) {
+    let banner = document.getElementById("overflowBanner");
+    if (!banner) return;
+    let msgs = [];
+    if (parseFloat(state.remW) > 0.5) msgs.push(state.leftoverModsW + " leftover module(s) in width (" + state.remW + "cm)");
+    if (parseFloat(state.remH) > 0.5) msgs.push(state.leftoverModsH + " leftover module(s) in height (" + state.remH + "cm)");
+    msgs.push("Create a partial zone to include them (adds 1 PSU + 1 RC), or discard.");
+    document.getElementById("overflowDetail").innerText = msgs.join(" · ");
+    banner.style.display = "flex";
+}
+
+function hideOverflowBanner() {
+    const banner = document.getElementById("overflowBanner");
+    if (banner) banner.style.display = "none";
+}
+
+function resolveOverflow(choice) {
+    overflowMode = choice;
+    if (choice === 'fit') window._partialZone = null;
+    calculate();
+    if (choice !== "ask") hideOverflowBanner();
+}
+
+function resetOverflowMode() { overflowMode = 'ask'; window._partialZone = null; }
+
+// ─── UNDO STACK ────────────────────────────────────────────────────────────
+const undoStack = [];
+const MAX_UNDO = 20;
+
+function captureState() {
+    return {
+        calcMode: document.querySelector('input[name="calcMode"]:checked')?.value,
+        width: document.getElementById('widthInput').value,
+        height: document.getElementById('heightInput').value,
+        cols: document.getElementById('colsInput').value,
+        rows: document.getElementById('rowsInput').value,
+        installType: document.querySelector('input[name="installType"]:checked')?.value,
+        cabinetSize: document.getElementById('cabinetSize').value,
+        moduleSize: document.getElementById('moduleSize').value,
+        zoneConfig: document.getElementById('zoneConfig').value,
+        pixelPitch: document.getElementById('pixelPitch').value,
+        colorSelect: document.getElementById('colorSelect').value,
+        portLimit: document.getElementById('portLimit').value,
+        wiring: document.getElementById('wiringPattern').value,
+        voltage: document.getElementById('voltage').value,
+        breaker: document.getElementById('breaker').value,
+        watts: document.getElementById('wattsPerUnit').value,
+        costSqm: document.getElementById('costPerSqm').value
+    };
+}
+
+function pushUndo() {
+    const state = captureState();
+    if (undoStack.length > 0) {
+        const last = undoStack[undoStack.length - 1];
+        if (JSON.stringify(last) === JSON.stringify(state)) return;
+    }
+    undoStack.push(state);
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    updateUndoBtn();
+}
+
+function undoLast() {
+    if (undoStack.length < 2) { showNotification('Nothing to undo'); return; }
+    undoStack.pop();
+    const state = undoStack[undoStack.length - 1];
+    applyState(state);
+    updateUndoBtn();
+    showNotification('↩ Undone');
+}
+
+function applyState(s) {
+    if (!s) return;
+    if(s.calcMode) document.getElementById('calcMode' + s.calcMode.charAt(0).toUpperCase() + s.calcMode.slice(1)).checked = true;
+    document.getElementById('widthInput').value = s.width;
+    document.getElementById('heightInput').value = s.height;
+    document.getElementById('colsInput').value = s.cols;
+    document.getElementById('rowsInput').value = s.rows;
+    if(s.installType) document.querySelector('input[name="installType"][value="' + s.installType + '"]').checked = true;
+    document.getElementById('cabinetSize').value = s.cabinetSize;
+    document.getElementById('moduleSize').value = s.moduleSize;
+    document.getElementById('zoneConfig').value = s.zoneConfig;
+    document.getElementById('pixelPitch').value = s.pixelPitch;
+    document.getElementById('colorSelect').value = s.colorSelect;
+    document.getElementById('portLimit').value = s.portLimit;
+    document.getElementById('wiringPattern').value = s.wiring;
+    document.getElementById('voltage').value = s.voltage;
+    document.getElementById('breaker').value = s.breaker;
+    document.getElementById('wattsPerUnit').value = s.watts;
+    document.getElementById('costPerSqm').value = s.costSqm;
+    resetOverflowMode();
+    toggleCalcMode();
+}
+
+function updateUndoBtn() {
+    const btn = document.getElementById('undoBtn');
+    if (btn) btn.disabled = undoStack.length < 2;
+}
+
+// ─── MODE SWITCH CONFIRMATION ──────────────────────────────────────────────
+let _previousInstallType = null;
+function confirmModeSwitch(radio) {
+    if (_previousInstallType && _previousInstallType !== radio.value) {
+        if (!confirm('Switching between Cabinet and DIY Module mode will recalculate the grid.\nYour inputs are preserved but results will change.\n\nContinue?')) {
+            document.querySelector('input[name="installType"][value="' + _previousInstallType + '"]').checked = true;
+            return;
+        }
+    }
+    _previousInstallType = radio.value;
+    calculate();
+}
+
+// ─── EXPORT GRID AS PNG ────────────────────────────────────────────────────
+async function exportGridPNG() {
+    const container = document.getElementById('gridContainer');
+    showNotification('Capturing grid...');
+    try {
+        const canvas = await html2canvas(container, {
+            scale: 2, backgroundColor: '#1a1a2e', logging: false, useCORS: true
+        });
+        const link = document.createElement('a');
+        link.download = 'LED_Grid_Layout.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showNotification('Grid PNG downloaded!');
+    } catch(err) {
+        showNotification('Export failed: ' + err.message);
+    }
+}
+
 
 // UPDATED DB with REALISTIC UAE MARKET RATES (AED)
 let DB = {
@@ -699,6 +873,14 @@ function setupDropdown(listId, inputId, priceId, key) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    _previousInstallType = document.querySelector('input[name="installType"]:checked')?.value || 'cabinet';
+    // Ctrl+Z / Cmd+Z keyboard undo
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && !['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) {
+            e.preventDefault();
+            undoLast();
+        }
+    });
     populateProjectList();
     Object.keys(DB).forEach(key => {
         let domKey = key.slice(0, 4); 
@@ -845,6 +1027,7 @@ function calculate() {
     let unitW_cm, unitH_cm, subGridW = 1, subGridH = 1;
     let zoneSize = 1;
 
+    if (!isModule) window._partialZone = null;
     if (!isModule) {
         let parts = document.getElementById('cabinetSize').value.split(',');
         unitW_cm = parseFloat(parts[0]);
@@ -879,25 +1062,107 @@ function calculate() {
              document.getElementById('widthInput').value = targetW.toFixed(0);
         }
 
-        cols = Math.floor(targetW / unitW_cm);
-        rows = Math.floor(targetH / unitH_cm);
-        
+        let exactCols = targetW / unitW_cm;
+        let exactRows = targetH / unitH_cm;
+        let floorCols = Math.floor(exactCols);
+        let floorRows = Math.floor(exactRows);
+
+        // Detect leftover modules that don't fill a complete zone (threshold: >0.5cm)
+        let remW = targetW - (floorCols * unitW_cm);  // leftover cm in width
+        let remH = targetH - (floorRows * unitH_cm);  // leftover cm in height
+        let hasOverflow = isModule && (remW > 0.5 || remH > 0.5);
+
+        // How many leftover modules on each edge?
+        let modW = isModule ? (unitW_cm / subGridW) : unitW_cm;  // cm per individual module
+        let modH = isModule ? (unitH_cm / subGridH) : unitH_cm;
+        let leftoverModsW = remW > 0.5 ? Math.ceil(remW / modW) : 0;
+        let leftoverModsH = remH > 0.5 ? Math.ceil(remH / modH) : 0;
+
+        if (hasOverflow && overflowMode === 'ask') {
+            lastOverflowState = {
+                remW: remW.toFixed(1), remH: remH.toFixed(1),
+                floorCols, floorRows,
+                leftoverModsW, leftoverModsH,
+                targetW, targetH, unitW_cm, unitH_cm,
+                modW, modH, subGridW, subGridH
+            };
+            cols = floorCols; rows = floorRows;
+            window._partialZone = null;
+            showOverflowBanner(lastOverflowState);
+        } else if (hasOverflow && overflowMode === 'partial') {
+            // Full zones stay as-is; partial zone is an extra column/row in the grid
+            // but ONLY contains the actual leftover modules — no new modules are added
+            cols = floorCols + (leftoverModsW > 0 ? 1 : 0);
+            rows = floorRows + (leftoverModsH > 0 ? 1 : 0);
+            // Store exact partial zone module dimensions for display and count correction
+            window._partialZone = {
+                cols, rows, floorCols, floorRows,
+                // Store actual leftover counts (0 = no overflow on that axis)
+                leftoverModsW: leftoverModsW,  // 0 if only height overflowed
+                leftoverModsH: leftoverModsH,  // 0 if only width overflowed
+                subGridW, subGridH
+            };
+            hideOverflowBanner();
+        } else {
+            // 'fit' or no overflow: only full zones, no partial
+            cols = floorCols; rows = floorRows;
+            window._partialZone = null;
+            if (!hasOverflow) hideOverflowBanner();
+        }
+
         let displayCols = isModule ? (cols * subGridW) : cols;
         let displayRows = isModule ? (rows * subGridH) : rows;
         document.getElementById('colsInput').value = displayCols;
         document.getElementById('rowsInput').value = displayRows;
+        // NOTE: We do NOT write back to widthInput/heightInput - user dimensions are preserved
     } else {
+        // By-quantity mode: user enters total module counts (cols × rows of modules)
         let inputCols = parseInt(document.getElementById('colsInput').value) || 1;
         let inputRows = parseInt(document.getElementById('rowsInput').value) || 1;
-        
+
         if (isModule) {
-            cols = Math.ceil(inputCols / subGridW);
-            rows = Math.ceil(inputRows / subGridH);
+            // How many full zones fit, and how many modules are left over
+            let fullZoneCols = Math.floor(inputCols / subGridW);
+            let fullZoneRows = Math.floor(inputRows / subGridH);
+            let leftoverModsW = inputCols % subGridW;  // leftover modules in width
+            let leftoverModsH = inputRows % subGridH;  // leftover modules in height
+            let hasOverflow = (leftoverModsW > 0 || leftoverModsH > 0);
+
+            if (hasOverflow && overflowMode === 'ask') {
+                lastOverflowState = {
+                    remW: (leftoverModsW * (unitW_cm / subGridW)).toFixed(1),
+                    remH: (leftoverModsH * (unitH_cm / subGridH)).toFixed(1),
+                    floorCols: fullZoneCols, floorRows: fullZoneRows,
+                    leftoverModsW, leftoverModsH,
+                    subGridW, subGridH
+                };
+                cols = fullZoneCols;
+                rows = fullZoneRows;
+                window._partialZone = null;
+                showOverflowBanner(lastOverflowState);
+            } else if (hasOverflow && overflowMode === 'partial') {
+                cols = fullZoneCols + (leftoverModsW > 0 ? 1 : 0);
+                rows = fullZoneRows + (leftoverModsH > 0 ? 1 : 0);
+                window._partialZone = {
+                    cols, rows,
+                    floorCols: fullZoneCols, floorRows: fullZoneRows,
+                    leftoverModsW, leftoverModsH,
+                    subGridW, subGridH
+                };
+                hideOverflowBanner();
+            } else {
+                // 'fit' or no overflow: only full zones, discard leftovers
+                cols = fullZoneCols;
+                rows = fullZoneRows;
+                window._partialZone = null;
+                if (!hasOverflow) hideOverflowBanner();
+            }
         } else {
             cols = inputCols;
             rows = inputRows;
+            window._partialZone = null;
         }
-        
+
         document.getElementById('widthInput').value = (cols * unitW_cm).toFixed(0);
         document.getElementById('heightInput').value = (rows * unitH_cm).toFixed(0);
     }
@@ -918,8 +1183,39 @@ function calculate() {
 
     let unitResW = Math.round((unitW_cm * 10) / pitch);
     let unitResH = Math.round((unitH_cm * 10) / pitch);
-    let totalUnits = cols * rows; 
-    let totalModules = isModule ? (totalUnits * zoneSize) : totalUnits; 
+    let totalUnits = cols * rows;
+
+    // Correct module count when a partial zone exists
+    // A partial zone at the edge has fewer modules than a full zone
+    let totalModules;
+    if (isModule && window._partialZone) {
+        const pz = window._partialZone;
+        let hasPartialCol = pz.cols > pz.floorCols;  // width overflowed
+        let hasPartialRow = pz.rows > pz.floorRows;  // height overflowed
+
+        // Rectangle of full zones (no overflow edges)
+        let modsInFullRect = pz.floorCols * pz.floorRows * zoneSize;
+
+        // Partial column strip: floorRows full-height zones, each with leftoverModsW modules wide
+        // Height per zone = subGridH modules (full height zone, not partial)
+        let modsInPartialCol = hasPartialCol
+            ? (pz.floorRows * pz.leftoverModsW * pz.subGridH)
+            : 0;
+
+        // Partial row strip: floorCols full-width zones, each with leftoverModsH modules tall
+        let modsInPartialRow = hasPartialRow
+            ? (pz.floorCols * pz.subGridW * pz.leftoverModsH)
+            : 0;
+
+        // Corner zone: only if BOTH axes overflowed
+        let modsInCorner = (hasPartialCol && hasPartialRow)
+            ? (pz.leftoverModsW * pz.leftoverModsH)
+            : 0;
+
+        totalModules = modsInFullRect + modsInPartialCol + modsInPartialRow + modsInCorner;
+    } else {
+        totalModules = isModule ? (totalUnits * zoneSize) : totalUnits;
+    }
     
     let pixelsPerUnit = unitResW * unitResH;
     let unitsPerPort = Math.floor(dataLimit / pixelsPerUnit); if(unitsPerPort<1) unitsPerPort=1;
@@ -930,12 +1226,70 @@ function calculate() {
     let totalCircuits = Math.ceil(totalUnits / maxUnitsPerCircuit);
     let totalSystemAmps = (totalUnits * unitWatts) / volts;
 
-    let totalAreaM2 = (cols * unitW_cm * rows * unitH_cm) / 10000;
+    // Area: use actual screen dimensions (user-entered) not zone grid footprint
+    let totalAreaM2;
+    if (isModule && window._partialZone) {
+        // Actual area = full zones + partial strip area (only real modules, not phantom)
+        const _pza = window._partialZone;
+        let modW_cm = unitW_cm / subGridW;
+        let modH_cm = unitH_cm / subGridH;
+        let hasPC = _pza.cols > _pza.floorCols;
+        let hasPR = _pza.rows > _pza.floorRows;
+        // Full zone rectangle area
+        let areaFull = _pza.floorCols * unitW_cm * _pza.floorRows * unitH_cm;
+        // Partial column strip area (real width = leftoverModsW * modW_cm)
+        let areaPartialCol = hasPC ? (_pza.leftoverModsW * modW_cm * _pza.floorRows * unitH_cm) : 0;
+        // Partial row strip area (real height = leftoverModsH * modH_cm)
+        let areaPartialRow = hasPR ? (_pza.floorCols * unitW_cm * _pza.leftoverModsH * modH_cm) : 0;
+        // Corner area
+        let areaCorner = (hasPC && hasPR) ? (_pza.leftoverModsW * modW_cm * _pza.leftoverModsH * modH_cm) : 0;
+        totalAreaM2 = (areaFull + areaPartialCol + areaPartialRow + areaCorner) / 10000;
+    } else {
+        totalAreaM2 = (cols * unitW_cm * rows * unitH_cm) / 10000;
+    }
     let totalCostAED = totalAreaM2 * costPerM2;
+
+    // Count zones accurately: full zones + any partial zones on the edges
+    let pz2 = window._partialZone;
+    let hasPartialZone = !!pz2;
+    let fullZoneCount, partialZoneCount, totalZoneCount;
+    if (hasPartialZone) {
+        let hasPartialCol = pz2.cols > pz2.floorCols;
+        let hasPartialRow = pz2.rows > pz2.floorRows;
+        // Full interior zones
+        fullZoneCount = pz2.floorCols * pz2.floorRows;
+        // Partial column strip zones (all rows in that col = floorRows zones)
+        let partialColZones = hasPartialCol ? pz2.floorRows : 0;
+        // Partial row strip zones (all cols in that row = floorCols zones)
+        let partialRowZones = hasPartialRow ? pz2.floorCols : 0;
+        // Corner zone if both axes overflowed (1 extra zone at intersection)
+        let cornerZone = (hasPartialCol && hasPartialRow) ? 1 : 0;
+        partialZoneCount = partialColZones + partialRowZones + cornerZone;
+        totalZoneCount = fullZoneCount + partialZoneCount;
+    } else {
+        fullZoneCount = cols * rows;
+        partialZoneCount = 0;
+        totalZoneCount = fullZoneCount;
+    }
+    let psuCount = totalZoneCount;  // 1 PSU per zone (full or partial)
+    let rcCount  = totalZoneCount;  // 1 RC per zone (full or partial)
 
     document.getElementById('dimResult').innerText = `${(cols*unitW_cm/100).toFixed(2)}m x ${(rows*unitH_cm/100).toFixed(2)}m`;
     document.getElementById('qtyResult').innerText = totalModules; 
-    if(isModule) document.getElementById('zoneResult').innerText = totalUnits; 
+    if(isModule) {
+        document.getElementById('zoneResult').innerText = totalZoneCount;
+        // PSU/RC boxes
+        document.getElementById('psuRcBox').style.display = 'block';
+        document.getElementById('rcBox').style.display = 'block';
+        document.getElementById('psuResult').innerText = psuCount;
+        document.getElementById('rcResult').innerText = rcCount;
+        let psuDetail = hasPartialZone ? fullZoneCount + ' full + ' + partialZoneCount + ' partial' : fullZoneCount + ' full zones';
+        document.getElementById('psuDetailResult').innerText = psuDetail;
+        document.getElementById('rcDetailResult').innerText = psuDetail;
+    } else {
+        document.getElementById('psuRcBox').style.display = 'none';
+        document.getElementById('rcBox').style.display = 'none';
+    }
     document.getElementById('areaResult').innerText = `${totalAreaM2.toFixed(2)} m²`;
     
     let totalResW = cols * unitResW; 
@@ -958,6 +1312,7 @@ function calculate() {
     if (currentViewMode === 'data') document.getElementById('legendText').innerText = isWiringOn ? "DATA VIEW: Colors = Data Ports." : "DATA VIEW: Layout Only.";
     else document.getElementById('legendText').innerText = isWiringOn ? `POWER VIEW: Yellow Lines = Circuits (Max ${maxUnitsPerCircuit} units).` : "POWER VIEW";
 
+    pushUndo();
     drawGridOptimized(cols, rows, unitW_cm, unitH_cm, subGridW, subGridH, userColor, isWiringOn, unitsPerPort, maxUnitsPerCircuit);
 }
 
@@ -975,8 +1330,28 @@ function drawGridOptimized(cols, rows, uW, uH, subW, subH, userColor, showLines,
 
     grid.style.width = `${dW}px`;
     grid.style.height = `${dH}px`;
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+    // Build proportional grid template — partial zone col/row is narrower
+    const _pz = window._partialZone;
+    if (_pz && (_pz.cols > _pz.floorCols || _pz.rows > _pz.floorRows)) {
+        // Width: full zones get subW fr each, partial col gets leftoverModsW fr
+        let colFrs = '';
+        for (let c = 0; c < cols; c++) {
+            let w = (_pz.cols > _pz.floorCols && c === cols - 1) ? _pz.leftoverModsW : _pz.subGridW;
+            colFrs += w + 'fr ';
+        }
+        // Height: full zones get subH fr each, partial row gets leftoverModsH fr
+        let rowFrs = '';
+        for (let r = 0; r < rows; r++) {
+            let h = (_pz.rows > _pz.floorRows && r === rows - 1) ? _pz.leftoverModsH : _pz.subGridH;
+            rowFrs += h + 'fr ';
+        }
+        grid.style.gridTemplateColumns = colFrs.trim();
+        grid.style.gridTemplateRows = rowFrs.trim();
+    } else {
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    }
 
     let path = [];
     let isHoriz = document.getElementById('wiringPattern').value === 'h-snake';
@@ -1003,8 +1378,16 @@ function drawGridOptimized(cols, rows, uW, uH, subW, subH, userColor, showLines,
         unitMap[`${pos.r}_${pos.c}`] = { idx: groupIdx + 1, color: color, isStart: isStart };
     });
 
-    let htmlBuffer = ''; 
-    
+    let htmlBuffer = '';
+
+    // Dynamic font size based on cell pixel size
+    let cellPxW = dW / cols;
+    let cellPxH = dH / rows;
+    let cellMin = Math.min(cellPxW, cellPxH);
+    let labelFontSize = Math.max(7, Math.min(12, cellMin * 0.28));
+    let showLabel = cellMin >= 16; // hide numbers on very small cells
+    grid.style.fontSize = labelFontSize + 'px';
+
     for(let r=0; r<rows; r++){
         for(let c=0; c<cols; c++){
             let info = unitMap[`${r}_${c}`];
@@ -1017,24 +1400,58 @@ function drawGridOptimized(cols, rows, uW, uH, subW, subH, userColor, showLines,
                 style += `background-image: url(${previewImageUrl}); background-size: ${cols * 100}% ${rows * 100}%; background-position: ${xPos}% ${yPos}%;`;
             }
 
+            // Determine if this cell is in the partial zone strip
+            let pz = window._partialZone;
+            // A column is partial only if width actually overflowed (cols > floorCols)
+            let isPartialCol = pz && (pz.cols > pz.floorCols) && c === pz.cols - 1;
+            // A row is partial only if height actually overflowed (rows > floorRows)
+            let isPartialRow = pz && (pz.rows > pz.floorRows) && r === pz.rows - 1;
+            let isPartialZone = isPartialCol || isPartialRow;
+            // Module count this cell actually holds
+            let pzSubW = isPartialCol ? pz.leftoverModsW : subW;
+            let pzSubH = isPartialRow ? pz.leftoverModsH : subH;
+
+            // Zone border: thick bright on zone edges, faint on internal module lines
+            let zoneBorderStyle = '';
+            if ((subW > 1 || subH > 1) && !showLines) {
+                let isZoneRight  = (c % subW === subW - 1) || isPartialCol;
+                let isZoneBottom = (r % subH === subH - 1) || isPartialRow;
+                let isZoneLeft   = (c % subW === 0);
+                let isZoneTop    = (r % subH === 0);
+                let bColor = isPartialZone ? 'rgba(255,200,50,0.9)' : 'rgba(255,255,255,0.75)';
+                let thick = isPartialZone ? `2px dashed ${bColor}` : `2px solid ${bColor}`;
+                let thin  = '1px solid rgba(255,255,255,0.18)';
+                zoneBorderStyle = `border-top:${isZoneTop?thick:thin}; border-left:${isZoneLeft?thick:thin}; border-right:${isZoneRight?thick:thin}; border-bottom:${isZoneBottom?thick:thin};`;
+                if (isPartialZone) zoneBorderStyle += `background-color:rgba(255,200,0,0.07)!important;`;
+            }
+
             if(info) {
                 if(showLines) {
-                    style += `border-color: ${info.color};`;
-                    if(!(showImage && previewImageUrl)) style += `background-color: ${info.color}11;`;
+                    style += `border-color: ${isPartialZone ? '#ffc107' : info.color};`;
+                    if(!(showImage && previewImageUrl)) style += `background-color: ${isPartialZone ? 'rgba(255,193,7,0.07)' : info.color+'11'};`;
                     if(info.isStart) {
                         let badgeClass = (currentViewMode === 'data' ? 'port-badge' : 'circuit-badge');
                         let badgeText = (currentViewMode === 'data' ? `P${info.idx}` : `C${info.idx}`);
                         content += `<div class="${badgeClass}">${badgeText}</div>`;
                     }
+                    // Show faded module lines even in wiring mode
+                    if((subW > 1 || subH > 1) && !(showImage && previewImageUrl)) {
+                        content += `<div class="diy-grid-lines" style="background-size:${100/pzSubW}% ${100/pzSubH}%;"></div>`;
+                    }
                 } else {
-                    if(!(showImage && previewImageUrl)) style += `background-color: ${userColor};`;
+                    if(!(showImage && previewImageUrl)) style += `background-color: ${isPartialZone ? 'rgba(255,193,7,0.15)' : userColor};`;
                     if(subW > 1 || subH > 1) {
-                         content += `<div class="diy-grid-lines" style="background-size: ${100/subW}% ${100/subH}%"></div>`;
+                        style += zoneBorderStyle;
+                        // Individual module lines inside (use partial dimensions for partial zones)
+                        content += `<div class="diy-grid-lines" style="background-size:${100/pzSubW}% ${100/pzSubH}%;"></div>`;
                     }
                 }
-                
-                if(!(showImage && previewImageUrl)) {
-                    content += `<div>${(r*cols + c + 1)}</div>`;
+
+                if(!(showImage && previewImageUrl) && showLabel) {
+                    let label = isPartialZone
+                        ? `<div class="zone-label" style="color:#ffc107;font-size:0.8em;">P${(r*cols+c+1)}<br><span style="font-size:0.75em;opacity:0.8;">${pzSubW}x${pzSubH}</span></div>`
+                        : `<div class="zone-label">${(r*cols + c + 1)}</div>`;
+                    content += label;
                 }
             }
             htmlBuffer += `<div class="led-zone" style="${style}">${content}</div>`;
@@ -1125,8 +1542,11 @@ function transferDataToCost() {
                 document.getElementById('desc_cabinet').value = "N/A";
                 document.getElementById('price_cabinet').value = 0;
                 
-                document.getElementById('qty_rc').value = totalZones; 
-                document.getElementById('qty_ps').value = Math.ceil((totalZones * 200) / 200); 
+                // Use the exact PSU/RC counts computed in calculate() — 1 per zone (full + partial)
+                const psuCount = parseInt(document.getElementById('psuResult').innerText) || totalZones;
+                const rcCount  = parseInt(document.getElementById('rcResult').innerText)  || totalZones;
+                document.getElementById('qty_rc').value = rcCount;
+                document.getElementById('qty_ps').value = psuCount;
                 document.getElementById('qty_lan').value = totalZones;
                 document.getElementById('qty_rib').value = totalModules; 
                 document.getElementById('qty_mag').value = totalModules * 8; 
@@ -1219,20 +1639,25 @@ function saveProject() {
         rows: document.getElementById('rowsInput').value,
         installType: document.querySelector('input[name="installType"]:checked').value,
         cabinetSize: document.getElementById('cabinetSize').value,
+        moduleSize: document.getElementById('moduleSize').value,
+        zoneConfig: document.getElementById('zoneConfig').value,
         pixelPitch: document.getElementById('pixelPitch').value,
+        colorSelect: document.getElementById('colorSelect').value,
         portLimit: document.getElementById('portLimit').value,
         wiring: document.getElementById('wiringPattern').value,
         voltage: document.getElementById('voltage').value,
         breaker: document.getElementById('breaker').value,
         watts: document.getElementById('wattsPerUnit').value,
         costSqm: document.getElementById('costPerSqm').value,
-        aiBudget: document.getElementById('aiBudget').value 
+        aiBudget: document.getElementById('aiBudget').value,
+        savedAt: new Date().toLocaleString()
     };
     let projects = JSON.parse(localStorage.getItem('ledProjects') || '{}');
     projects[projectName] = config;
     localStorage.setItem('ledProjects', JSON.stringify(projects));
     populateProjectList();
-    showNotification(`Project "${projectName}" saved!`);
+    document.getElementById('projectList').value = projectName;
+    showNotification('\u2705 Project "' + projectName + '" saved!');
 }
 
 function loadProject(projectName) {
@@ -1247,10 +1672,20 @@ function loadProject(projectName) {
     document.getElementById('rowsInput').value = config.rows;
     document.querySelector(`input[name="installType"][value="${config.installType}"]`).checked = true;
     document.getElementById('cabinetSize').value = config.cabinetSize;
+    if(config.moduleSize) document.getElementById('moduleSize').value = config.moduleSize;
+    if(config.zoneConfig) document.getElementById('zoneConfig').value = config.zoneConfig;
     document.getElementById('pixelPitch').value = config.pixelPitch;
+    if(config.colorSelect) document.getElementById('colorSelect').value = config.colorSelect;
+    if(config.portLimit) document.getElementById('portLimit').value = config.portLimit;
+    if(config.wiring) document.getElementById('wiringPattern').value = config.wiring;
+    if(config.voltage) document.getElementById('voltage').value = config.voltage;
+    if(config.breaker) document.getElementById('breaker').value = config.breaker;
+    if(config.watts) document.getElementById('wattsPerUnit').value = config.watts;
+    if(config.costSqm) document.getElementById('costPerSqm').value = config.costSqm;
     if(config.aiBudget) document.getElementById('aiBudget').value = config.aiBudget;
-    toggleCalcMode(); 
-    showNotification(`Project "${projectName}" loaded.`);
+    resetOverflowMode();
+    toggleCalcMode();
+    showNotification('📂 Project "' + projectName + '" loaded.' + (config.savedAt ? ' (Saved: ' + config.savedAt + ')' : ''));
 }
 
 function deleteProject() {
@@ -1268,14 +1703,24 @@ function deleteProject() {
 
 function populateProjectList() {
     const projectList = document.getElementById('projectList');
+    const currentVal = projectList.value;
     projectList.innerHTML = '<option value="">Load a Project...</option>';
     let projects = JSON.parse(localStorage.getItem('ledProjects') || '{}');
+    const names = Object.keys(projects);
+    if (names.length === 0) {
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.textContent = '— No saved projects —';
+        projectList.appendChild(opt);
+    }
     for (const name in projects) {
         const option = document.createElement('option');
         option.value = name;
-        option.textContent = name;
+        const savedAt = projects[name].savedAt ? ' · ' + projects[name].savedAt : '';
+        option.textContent = name + savedAt;
         projectList.appendChild(option);
     }
+    if (currentVal) projectList.value = currentVal;
 }
 
 async function exportPDF() {
@@ -1583,7 +2028,7 @@ async function exportPDF() {
     doc.setFontSize(7);
     doc.setTextColor(100, 100, 100);
     doc.setFont(undefined, 'normal');
-    doc.text('Copyright @Alfazal Tech Mansoor Mukadam | ali2m1@gmail.com | +9710567547667', 105, 288, { align: 'center' });
+    doc.text('Copyright @Alfazal Tech Abil fazal Mukadam | email :- Abilfazal@gmail.com | +971585812753', 105, 288, { align: 'center' });
     
     // Save
     doc.save('LED_Proposal.pdf');
@@ -1634,17 +2079,13 @@ function getAIRecommendation() {
     }
 
     // 4. Update Cost Estimation Rate automatically
-    document.getElementById('costPerSqm').value = budget;
-    debouncedCalculate(); // Trigger main calculation
+    if(currentMarketRate > 0) {
+        document.getElementById('costPerSqm').value = currentMarketRate;
+    }
 
     resultBox.innerHTML = html;
-    showNotification("Market Data Checked & Cost Updated");
 }
 
-document.addEventListener('input', function(e) {
-    if(e.target.classList.contains('calc-trigger')) calculateCostTotals();
-});
 </script>
-
 </body>
 </html>
